@@ -1,153 +1,96 @@
-import os
-from pydrive2.auth import GoogleAuth
-from bot.helpers.cookies import get_cookies
+import telebot  # Import the telebot library
+from dotenv import load_dotenv  # Import dotenv to load the .env file
+import os  # Import os to access environment variables
 
-currentFile = __file__
-realPath = os.path.realpath(currentFile)
-dirPath = os.path.dirname(realPath)
-dirName = os.path.basename(dirPath)
+# Load environment variables from .env file
+load_dotenv()
 
-
-class TG_CONFIG:
-    api_id = 9948640
-
-    api_hash = "f978597e6161103402052c236a8316e0"
-
-    bot_token = "7841656270:AAGEIU6KthRCZLaVWUbNjIhhnOXcrktbRyE"
-
-    #DEVS or #OWNERS
-    sudo_users = [1984763765, 6360672597]
-
-    session = "conan76_web_dl_bot"
-
-    bot_creater = "Conan76"  # Don't Remove if you Respect the DEV
-
-    bot_creater_id = "@conan7612"  # Don't Remove if you Respect the DEV
+# Retrieve the API Token from the .env file
+API_TOKEN = os.getenv("7841656270:AAGEIU6KthRCZLaVWUbNjIhhnOXcrktbRyE")
 
 
-class UPLOAD_CONGIF:
-    upload_to = "tg" #tg, ftp, gdrive
-    default_upload_to = "tg"
+# Initialize the bot with the API token
+bot = telebot.TeleBot(API_TOKEN)
 
+# /start command handler
+@bot.message_handler(commands=['start'])
+def send_welcome(message):
+    bot.reply_to(message, "Assalamu alaikum. Welcome! How can I assist you today?")
 
-class GDRIVE_CONFIG:
-    #for Gdrive (Leave it as Empty String if not Gdrive Upload is turned ON)
-    root_folder_id = ""
+# /help command handler
+@bot.message_handler(commands=['help'])
+def send_help(message):
+    bot.reply_to(message, "Available commands:\n"
+                          "/start - Start the bot\n"
+                          "/help - List available commands\n"
+                          "/status - Check bot status\n"
+                          "/webdl - Perform a web download task\n"
+                          "/getfile <filename> - Retrieve a file by name")
 
-    #keep it empty if you don't have index link or don't touch
-    indexlink_format = "https://example.workers.dev/0:/{}/{}"
+# /status command handler
+@bot.message_handler(commands=['status'])
+def send_status(message):
+    bot.reply_to(message, "The bot is running and ready to assist you!")
 
-    is_making_drive_files_public = True
+# /webdl command handler
+@bot.message_handler(commands=['webdl'])
+def webdl_command(message):
+    try:
+        args = message.text.split()
+        category, start_time, end_time, title = None, None, None, None
 
+        for i, arg in enumerate(args):
+            if arg == '-c' and i + 1 < len(args):
+                category = args[i + 1]
+            elif arg == '-ss' and i + 1 < len(args):
+                start_time = datetime.strptime(args[i + 1], "%m/%d/%Y+%H:%M:%S")
+            elif arg == '-to' and i + 1 < len(args):
+                end_time = datetime.strptime(args[i + 1], "%m/%d/%Y+%H:%M:%S")
+            elif arg == '-title' and i + 1 < len(args):
+                title = args[i + 1]
 
-class GD_SHARER_CONFIG:
+        if not all([category, start_time, end_time, title]):
+            bot.reply_to(message, "Missing required parameters. Use: "
+                                  "/webdl -c <Category> -ss <StartTime> -to <EndTime> -title <Title>")
+           
 
-    is_uploading_to_filepress = False
+       
+# Validate the arguments
+    if not category or not start_time or not end_time or not title:
+        bot.reply_to(message, "Missing required parameters. Use the correct format: /webdl -c <Category> -ss <StartTime> -to <EndTime> -title <Title>")
+        return
 
-    #Don't add a trailing slash at the end (keep in this format only - https://new5.filepress.store)
-    filepress_url = "https://new9.filepress.store"
+    # Example of responding with the parsed information
+    bot.reply_to(message, f"Processing download:\n"
+                          f"Category: {category}\n"
+                          f"Start Time: {start_time}\n"
+                          f"End Time: {end_time}\n"
+                          f"Title: {title}")
+
+# Define the /getfile command handler
+@bot.message_handler(commands=['getfile'])
+def get_file_command(message):
+    # The file name is passed as an argument to the command
+    file_name = message.text[len('/getfile '):].strip()  # Extract the file name from the command
+
+    if not file_name:
+        bot.reply_to(message, "Please provide a file name. Example: /getfile recorded_video.mp4")
+        return
+
+    # Example: Retrieve the file from the channel
+    # Here, you should specify the logic to find the file in the channel.
+    # For demonstration, we're assuming the file is already in a list of files in the channel
+    # In practice, you'd fetch the file using a direct link or get the file ID.
     
-    cookie_path = dirPath + "/cookies/filepress.txt"
-    _, dict_cookies = get_cookies(cookie_path)
-    
-    filepress_connect_sid_cookie_value = dict_cookies.get("connect.sid")
+    try:
+        # Send the file from the bot's storage (assuming it's uploaded to the bot or can be fetched by URL)
+        bot.send_document(message.chat.id, open(file_name, 'rb'))  # This is just an example
+    except FileNotFoundError:
+        bot.reply_to(message, f"File {file_name} not found. Please check the file name.")
+    except Exception as e:
+        bot.reply_to(message, f"An error occurred: {e}")
 
-
-class PROXY_CONFIG:
-    #Keep it as a empty string if you don't have proxy
-    proxy_url = ""
-    USE_PROXY_WHILE_DOWNLOADING = False
-
-
-class FTP_CONFIG:
-    #FTP Creds
-    ftp_url = ""
-
-    ftp_domain = ""
-    
-    ftp_user = ""
-    
-    ftp_password = ""
-
-
-class FILENAME_CONFIG:
-
-    filename_format = "p2p"  # p2p or non-p2p
-
-    p2p_audio_bitrate = "K"
-
-    non_p2p_audio_bitrate = "Kbps"
-
-    underscore_before_after_group_tag = "__"
-
-    language_order = ['hi', 'ta', 'te', 'bn', 'gu', 'pa', 'as', 'or',
-                    'ml', 'mr', 'kn', 'th', 'ja', 'th', 'id', 'ms', 'ko', 'bho', 'bh', 'en']
-
-    default_group_tag = "RV" # Don't change it if you Respect the DEV
-
-    #Dict made to add Group Tag according to the user requesting to DL (according to there TG ID) if not in list then takes the default_group_tag
-    group_tag_mapping = {
-        '1984763765': 'Conan76',
-        '6360672597' : 'RV'
-    }
-
-
-DL_DONE_MSG = """
-✅ <b> Task Completed In </b> <code>{}</code>
-
-<b>FileName : </b> <code>{}</code>
-<b>OTT : </b> <code>{}</code>
-<b>Size : </b> <code>{}</code>
-"""
-
-
-START_MSG = """
-<b>Hello <code>@{}</code>,
-A TG WEB-DL Bot</b>
-
-> <code>{}</code>
-
-<b>Made by @conan7612</b>
-"""
-
-SIMPLE_CAPTION = '''<code>{}</code>'''
-
-LOG_MESSAGE = "<code>[+]</code> <b>{}</b>\n<b><code>[+]</code> <b>{} : </b><code>{}</code>"
-
-
-proxies = {
-    "https": PROXY_CONFIG.proxy_url,
-    "http": PROXY_CONFIG.proxy_url
-} if PROXY_CONFIG.proxy_url and PROXY_CONFIG.proxy_url.strip() else None
-
-tplay_path = os.path.join(
-    dirPath, "static", "tplay.json")
-
-languages_info_file_path = os.path.join(
-    dirPath, "static", "languages_info.json")
-
-client_secrets_json = os.path.join(dirPath, "static", "client_secrets.json")
-
-token_file = os.path.join(dirPath, "static", "session")
-
-dl_folder = os.path.join(dirPath, "downloads")  
-
-os.makedirs(dl_folder) if not os.path.exists(dl_folder) else None
-
-iswin = 1 if os.name == "nt" else 0
-
-
-if iswin == 0:
-    aria2c = dirPath + "/binaries/aria2c"
-    mp4decrypt = dirPath + "/binaries/mp4decrypt"
-    ytdlp = dirPath + "/binaries/yt-dlp"
-
-    os.system(f"chmod 777 {aria2c} {mp4decrypt} {ytdlp}")
-else:
-    aria2c = dirPath + "/binaries/aria2c.exe"
-    mp4decrypt = dirPath + "/binaries/mp4decrypt.exe"
-    ytdlp = dirPath + "/binaries/yt-dlp.exe"
-
-
-gauth = GoogleAuth()
-GoogleAuth.DEFAULT_SETTINGS['client_config_file'] = client_secrets_json
+# Start the bot and keep it running
+if __name__ == '__main__':
+    print("Bot is running...")
+    bot.infinity_polling()  # Keeps the bot running and listening for messages
